@@ -1,0 +1,29 @@
+services:
+  email-api:
+    build: ./
+    container_name: email-api
+    ports:
+      - "8080:8080"
+
+  mailserver:
+    image: mailserver/docker-mailserver
+    hostname: mail.tysonjenkins.dev
+    domainname: tysonjenkins.dev
+    container_name: mailserver
+    ports:
+      - "25:25"
+      - "143:143"
+      - "587:587"
+    environment:
+      - SSL_TYPE=manual
+      - SSL_CERT_PATH=/etc/certs/mail.crt
+      - SSL_KEY_PATH=/etc/certs/mail.key
+      - ENABLE_SPAMASSASSIN=1
+      - ENABLE_CLAMAV=1
+    volumes:
+      - ./docker-data/dms/mail-data/:/var/mail/
+      - ./docker-data/dms/mail-state/:/var/mail-state/
+      - ./docker-data/dms/mail-logs/:/var/log/mail/
+      - ./docker-data/dms/config/:/tmp/docker-mailserver/
+      - /etc/localtime:/etc/localtime:ro
+      - ./certs:/etc/certs
