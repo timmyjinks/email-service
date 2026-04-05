@@ -12,6 +12,7 @@ import (
 
 type application struct {
 	client *gomail.Dialer
+	resend *ResendClient
 }
 
 type Request struct {
@@ -19,11 +20,16 @@ type Request struct {
 }
 
 func main() {
+	cfg := Load()
+
 	d := gomail.NewDialer("mail.tysonjenkins.dev", 587, "timmy@tysonjenkins.dev", "password")
 	d.TLSConfig = &tls.Config{ServerName: "mail.tysonjenkins.dev", InsecureSkipVerify: true}
 	d.LocalName = "mail.tysonjenkins.dev"
 
-	app := application{client: d}
+	app := application{
+		client: d,
+		resend: NewClient(cfg.Resend.KEY),
+	}
 
 	http.HandleFunc("/", app.Send)
 
@@ -38,17 +44,7 @@ func (app *application) Send(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	m := gomail.NewMessage()
-	m.SetHeader("From", "timmy@tysonjenkins.dev")
-	m.SetHeader("To", "timmy@tysonjenkins.dev")
-	m.SetHeader("Subject", "Subject")
-	m.SetBody("text/html", "message")
-
-	app.client.DialAndSend()
-	if err := app.client.DialAndSend(m); err != nil {
-		panic(err)
-	}
+	app.resend.SendEmail()
 
 	w.Write([]byte(fmt.Sprintf("Message sent! %s\n", msg.Message)))
 }
